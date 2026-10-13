@@ -785,7 +785,8 @@ static size_t LZ4F_compressBegin_internal(LZ4F_cctx* cctx,
     }   }
     cctx->tmpIn = cctx->tmpBuff;
     cctx->tmpInSize = 0;
-    (void)XXH32_reset(&(cctx->xxh), 0);
+    if (cctx->prefs.frameInfo.contentChecksumFlag == LZ4F_contentChecksumEnabled)
+        (void)XXH32_reset(&(cctx->xxh), 0);
 
     /* context init */
     cctx->cdict = cdict;
