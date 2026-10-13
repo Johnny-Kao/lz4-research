@@ -1011,12 +1011,20 @@ static compressFunc_t LZ4F_selectCompression(LZ4F_blockMode_t blockMode, int lev
     return LZ4F_compressBlockHC_continue;
 }
 
+/* Research-only counters (never upstream). */
+static size_t cf_save_calls = 0;
+static size_t cf_save_bytes = 0;
+void cf_reset_counters(void) { cf_save_calls = 0; cf_save_bytes = 0; }
+size_t cf_get_calls(void) { return cf_save_calls; }
+size_t cf_get_bytes(void) { return cf_save_bytes; }
 /* Save or shorten history (up to 64KB) into @tmpBuff */
 static void LZ4F_localSaveDict(LZ4F_cctx_t* cctxPtr)
 {
     int const dictSize = (cctxPtr->prefs.compressionLevel < LZ4HC_CLEVEL_MIN) ?
                     LZ4_saveDict ((LZ4_stream_t*)(cctxPtr->lz4CtxPtr), (char*)(cctxPtr->tmpBuff), 64 KB) :
                     LZ4_saveDictHC ((LZ4_streamHC_t*)(cctxPtr->lz4CtxPtr), (char*)(cctxPtr->tmpBuff), 64 KB);
+    cf_save_calls++;
+    cf_save_bytes += (size_t)dictSize;
     cctxPtr->tmpIn = cctxPtr->tmpBuff + dictSize;
 }
 

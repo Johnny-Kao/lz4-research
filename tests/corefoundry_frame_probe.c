@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+extern void cf_reset_counters(void);
+extern size_t cf_get_calls(void);
+extern size_t cf_get_bytes(void);
 
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
 int main(void) {
@@ -21,6 +24,7 @@ int main(void) {
             opt.stableSrc = stable;
             volatile size_t sink = 0;
             size_t last_size = 0;
+            cf_reset_counters();
             double begin = now();
             for (int rep = 0; rep < REPEATS; rep++) {
                 size_t used = LZ4F_compressBegin(ctx, dst, INPUT_SIZE * 2 + 1024, &pref);
@@ -52,7 +56,7 @@ int main(void) {
             if (out_pos != INPUT_SIZE || memcmp(decoded, src, INPUT_SIZE)) { fprintf(stderr, "roundtrip failed chunk=%d stable=%d\n", chunk, stable); return 9; }
             LZ4F_freeDecompressionContext(dc);
             free(decoded);
-            printf("chunk=%d stableSrc=%d MBps=%.2f bytes=%zu roundtrip=PASS sink=%zu\n", chunk, stable, INPUT_SIZE * REPEATS / (1024.0 * 1024.0) / duration, last_size, (size_t)sink);
+            printf("chunk=%d stableSrc=%d MBps=%.2f bytes=%zu dict_calls=%zu dict_MiB=%.2f roundtrip=PASS sink=%zu\n", chunk, stable, INPUT_SIZE * REPEATS / (1024.0 * 1024.0) / duration, last_size, cf_get_calls(), cf_get_bytes()/1048576.0, (size_t)sink);
             LZ4F_freeCompressionContext(ctx);
         }
     }
