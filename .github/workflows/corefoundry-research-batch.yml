@@ -1,0 +1,45 @@
+name: CoreFoundry LZ4 Research Batch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64-gcc
+            os: ubuntu-24.04
+            compiler: gcc
+          - name: linux-x64-clang
+            os: ubuntu-24.04
+            compiler: clang
+          - name: linux-arm64-gcc
+            os: ubuntu-24.04-arm
+            compiler: gcc
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record environment
+        run: |
+          uname -a
+          ${{ matrix.compiler }} --version | sed -n '1p'
+          lscpu | grep -E '^Model name:|^Architecture:|^CPU\(s\):' || true
+      - name: HC backward match one-shot gate
+        run: |
+          set -euo pipefail
+          mkdir -p research-results
+          bash research/corefoundry/hc8-gate.sh "${{ matrix.compiler }}" | tee "research-results/${{ matrix.name }}.txt"
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-research
+          path: research-results/
+          if-no-files-found: warn

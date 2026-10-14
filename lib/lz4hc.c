@@ -212,6 +212,17 @@ int LZ4HC_countBack(const BYTE* const ip, const BYTE* const match,
     assert(ip >= iMin); assert((size_t)(ip-iMin) < (1U<<31));
     assert(match >= mMin); assert((size_t)(match - mMin) < (1U<<31));
 
+/* Research toggle: compare 8-byte backward match scanning against baseline. */
+#if defined(COREF_8BYTE_COUNTBACK) && (defined(__clang__) || defined(__GNUC__)) && !defined(LZ4_FORCE_SW_BITCOUNT)
+    while ((back - min) > 7) {
+        U64 const v = LZ4_read64(ip + back - 8) ^ LZ4_read64(match + back - 8);
+        if (v) {
+            unsigned const equalBytes = (unsigned)(LZ4_isLittleEndian() ? __builtin_clzll(v) : __builtin_ctzll(v)) >> 3;
+            return back - (int)equalBytes;
+        }
+        back -= 8;
+    }
+#endif
     while ((back - min) > 3) {
         U32 const v = LZ4_read32(ip + back - 4) ^ LZ4_read32(match + back - 4);
         if (v) {
