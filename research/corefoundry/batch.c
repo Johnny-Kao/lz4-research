@@ -102,21 +102,44 @@ static int delta(void) {
                 sink+=(unsigned char)lz4out[c-1];
             }
             double lz4ns=(clock_s()-t)*1e9/REPS;
-            if(LZ4_decompress_safe(lz4out,(char*)reconstructed,c,PAIR)!=PAIR||memcmp(src,reconstructed,PAIR))return 4;
+            t=clock_s();
+            for(int rep=0;rep<REPS;rep++) {
+                if(LZ4_decompress_safe(lz4out,(char*)reconstructed,c,PAIR)!=PAIR)return 4;
+                sink+=(unsigned char)reconstructed[0];
+            }
+            double lz4decns=(clock_s()-t)*1e9/REPS;
+            if(memcmp(src,reconstructed,PAIR))return 4;
             t=clock_s();int used=0;
             for(int rep=0;rep<REPS;rep++) {
                 memcpy(packed,base,PAGE);
-                packed[PAGE]=(unsigned char)(changes&255); packed[PAGE+1]=(unsigned char)(changes>>8);
                 used=PAGE+2;
-                for(int j=0;j<changes;j++){int pos=(j*4057+17)%PAGE; packed[used++]=(unsigned char)pos;packed[used++]=(unsigned char)(pos>>8);packed[used++]=next[pos];}
+                int count=0;
+                for(int pos=0;pos<PAGE;pos++){
+                    if(base[pos]!=next[pos]){
+                        packed[used++]=(unsigned char)pos;
+                        packed[used++]=(unsigned char)(pos>>8);
+                        packed[used++]=next[pos];
+                        count++;
+                    }
+                }
+                packed[PAGE]=(unsigned char)(count&255);
+                packed[PAGE+1]=(unsigned char)(count>>8);
                 sink+=packed[used-1];
             }
             double deltans=(clock_s()-t)*1e9/REPS;
-            memcpy(reconstructed,packed,PAGE);memcpy(reconstructed+PAGE,packed,PAGE);
-            int read=PAGE+2;
-            for(int j=0;j<changes;j++){int pos=(int)packed[read]|((int)packed[read+1]<<8);reconstructed[PAGE+pos]=packed[read+2];read+=3;}
+            int encoded_changes=(int)packed[PAGE]|((int)packed[PAGE+1]<<8);
+            if(encoded_changes!=changes || used!=PAGE+2+3*encoded_changes)return 5;
+            t=clock_s();
+            for(int rep=0;rep<REPS;rep++) {
+                memcpy(reconstructed,packed,PAGE);
+                memcpy(reconstructed+PAGE,packed,PAGE);
+                int read=PAGE+2;
+                for(int j=0;j<encoded_changes;j++){int pos=(int)packed[read]|((int)packed[read+1]<<8);reconstructed[PAGE+pos]=packed[read+2];read+=3;}
+                sink+=(unsigned char)reconstructed[0];
+            }
+            double deltadecns=(clock_s()-t)*1e9/REPS;
             if(memcmp(src,reconstructed,PAIR))return 5;
-            printf("DELTA,%s,%d,%.1f,%d,%.1f,%d,PASS\n",kind==0?"random-base":kind==1?"text-base":"structured-base",changes,lz4ns,c,deltans,used);
+            printf("DELTA,%s,%d,%.1f,%d,%.1f,%d,%.1f,%.1f,PASS\n",kind==0?"random-base":kind==1?"text-base":"structured-base",changes,lz4ns,c,deltans,used,lz4decns,deltadecns);
         }
     }
     return 0;

@@ -33,5 +33,6 @@ for r in rows("delta.csv"):
     assert r[-1] == "PASS"
     kind, changes = r[1], int(r[2])
     base_ns, base_size, delta_ns, delta_size = float(r[3]), int(r[4]), float(r[5]), int(r[6])
-    print(f"DELTA_RESULT corpus={kind} edits={changes} lz4_bytes={base_size} delta_bytes={delta_size} size_gain_pct={(1-delta_size/base_size)*100:+.2f} lz4_ns={base_ns:.1f} delta_ns={delta_ns:.1f} nonstandard=YES")
+    base_dec_ns, delta_dec_ns = float(r[7]), float(r[8])
+    print(f"DELTA_RESULT corpus={kind} edits={changes} lz4_bytes={base_size} delta_bytes={delta_size} size_gain_pct={(1-delta_size/base_size)*100:+.2f} lz4_encode_ns={base_ns:.1f} delta_encode_ns={delta_ns:.1f} lz4_decode_ns={base_dec_ns:.1f} delta_decode_ns={delta_dec_ns:.1f} nonstandard=YES")
 print("VALIDATION: all HC outputs byte-identical; all benchmark roundtrips passed.")

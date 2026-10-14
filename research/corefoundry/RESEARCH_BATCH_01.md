@@ -19,7 +19,8 @@ C. **Post hoc Oracle acceleration 1/4/16** for five data distributions and effec
 
 ## Important limits
 - Generated corpora are synthetic, not representative; warm caches and shared runners introduce noise. For actionability require repeated randomized interleaved trials and real workloads later.
-- Delta study includes raw reference page in size and encoder time but not decode-time cost; a pipeline claim requires decoder and reference-lifetime pricing.
+- Delta study includes raw reference page in size, full 4 KiB source/reference scanning during encode, and reconstruction during decode. This is not a complete standalone format (no schema/checksum/versioning), and shared-runner timing still requires reproducibility. A pipeline claim requires reference-lifetime pricing.
+- Run #38546411510 used a preliminary delta encoder that knew edited positions from the synthetic generator, excluding detection work; its DELTA *timings are invalid* and must not be cited as performance. Second run includes detection scan and both decode costs.
 - HC correctness includes baseline/candidate output byte-identical plus successful decompression. No claims of wins before GitHub Actions results.
 - No fixed entropy or Q-like heuristic accepted; no GPU/CPU state detection.
 - Potentially safe SIMD is only an implementation acceleration of a proven algorithm, not an architecture-dependent policy.
