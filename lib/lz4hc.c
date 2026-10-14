@@ -212,6 +212,14 @@ int LZ4HC_countBack(const BYTE* const ip, const BYTE* const match,
     assert(ip >= iMin); assert((size_t)(ip-iMin) < (1U<<31));
     assert(match >= mMin); assert((size_t)(match - mMin) < (1U<<31));
 
+#if defined(COREF_HC8) && defined(__GNUC__) && defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    /* Experimental research path: compare eight bytes backward at once. */
+    while ((back - min) >= 8) {
+        U64 const v = LZ4_read64(ip + back - 8) ^ LZ4_read64(match + back - 8);
+        if (v != 0) return back - (int)(__builtin_clzll(v) >> 3);
+        back -= 8;
+    }
+#endif
     while ((back - min) > 3) {
         U32 const v = LZ4_read32(ip + back - 4) ^ LZ4_read32(match + back - 4);
         if (v) {
