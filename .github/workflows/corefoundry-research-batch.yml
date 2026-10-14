@@ -31,7 +31,7 @@ jobs:
           uname -a
           ${{ matrix.compiler }} --version | sed -n '1p'
           lscpu | grep -E '^Model name:|^Architecture:|^CPU\(s\):' || true
-      - name: Build and run three independent research probes
+      - name: One-shot Sparse Delta vs native LZ4 with shared reference
         run: |
           set -euo pipefail
           mkdir -p research-results
