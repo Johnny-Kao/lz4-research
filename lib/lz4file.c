@@ -518,7 +518,11 @@ size_t LZ4F_write(LZ4_writeFile_t* lz4fWrite, const void* buf, size_t size)
       return cSize;
     }
 
+#ifndef COREF_SKIP_ZERO_WRITE
     if (cSize != fwrite(lz4fWrite->dstBuf, 1, cSize, lz4fWrite->fp)) {
+#else
+    if (cSize != 0 && cSize != fwrite(lz4fWrite->dstBuf, 1, cSize, lz4fWrite->fp)) {
+#endif
       lz4fWrite->errCode = returnErrorCode(LZ4F_ERROR_io_write);
       RETURN_ERROR(io_write);
     }
