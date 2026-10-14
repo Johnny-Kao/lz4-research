@@ -1230,9 +1230,9 @@ size_t LZ4F_uncompressedUpdate(LZ4F_cctx* cctxPtr,
  *  in which case the frame is invalidated, and must be restarted with LZ4F_compressBegin().
  *  LZ4F_compressOptions_t* is optional. NULL is a valid argument.
  */
-size_t LZ4F_flush(LZ4F_cctx* cctxPtr,
+static size_t LZ4F_flush_internal(LZ4F_cctx* cctxPtr,
                   void* dstBuffer, size_t dstCapacity,
-            const LZ4F_compressOptions_t* compressOptionsPtr)
+            const LZ4F_compressOptions_t* compressOptionsPtr, int finishing)
 {
     compressFunc_t compress;
     size_t cSize;
@@ -1260,7 +1260,7 @@ size_t LZ4F_flush(LZ4F_cctx* cctxPtr,
     cctxPtr->tmpInSize = 0;
 
     /* keep tmpIn within limits */
-    if ((cctxPtr->tmpIn + cctxPtr->maxBlockSize) > (cctxPtr->tmpBuff + cctxPtr->tmpBuffCapacity)) {
+    if (!finishing && (cctxPtr->tmpIn + cctxPtr->maxBlockSize) > (cctxPtr->tmpBuff + cctxPtr->tmpBuffCapacity)) {
         assert(cctxPtr->prefs.frameInfo.blockMode == LZ4F_blockLinked);
         LZ4F_localSaveDict(cctxPtr);
     }
@@ -1268,6 +1268,12 @@ size_t LZ4F_flush(LZ4F_cctx* cctxPtr,
     return cSize;
 }
 
+size_t LZ4F_flush(LZ4F_cctx* cctxPtr,
+                  void* dstBuffer, size_t dstCapacity,
+            const LZ4F_compressOptions_t* compressOptionsPtr)
+{
+    return LZ4F_flush_internal(cctxPtr, dstBuffer, dstCapacity, compressOptionsPtr, 0);
+}
 
 /*! LZ4F_compressEnd() :
  *  When you want to properly finish the compressed frame, just call LZ4F_compressEnd().
@@ -1285,7 +1291,7 @@ size_t LZ4F_compressEnd(LZ4F_cctx* cctxPtr,
     BYTE* const dstStart = (BYTE*)dstBuffer;
     BYTE* dstPtr = dstStart;
 
-    size_t const flushSize = LZ4F_flush(cctxPtr, dstBuffer, dstCapacity, compressOptionsPtr);
+    size_t const flushSize = LZ4F_flush_internal(cctxPtr, dstBuffer, dstCapacity, compressOptionsPtr, 1);
     DEBUGLOG(5,"LZ4F_compressEnd: dstCapacity=%u", (unsigned)dstCapacity);
     FORWARD_IF_ERROR(flushSize);   /* note : a failed flush invalidates the frame */
     dstPtr += flushSize;
